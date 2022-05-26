@@ -1,0 +1,11 @@
+{
+  "customers": [
+    {
+      "email": "jim@bo.com",
+      "first_name": "jim",
+      "last_name": "bo",
+      "id": 1
+    }
+  ],
+  "accounts": []
+}
