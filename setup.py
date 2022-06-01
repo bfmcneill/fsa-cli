@@ -12,6 +12,7 @@ setup(
         "loguru==0.6.0",
         "pendulum==2.1.2",
         "requests==2.27.1",
+        "email-validator==1.2.1",
     ],
     extras_require={
         "dev": [

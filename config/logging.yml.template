@@ -1,0 +1,29 @@
+version: 1
+disable_existing_loggers: True
+
+formatters:
+  loguru:
+    format: "%(asctime)s | %(levelname)s |  %(name)s.%(funcName)s():%(lineno)s - %(message)s"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: loguru
+    level: DEBUG
+
+
+
+root:
+    level: NOTSET
+    handlers: [console]
+    propagate: yes
+
+
+loggers:
+  fsa:
+    level: DEBUG
+    handlers: [ console ]
+    propagate: False
+
+
+
