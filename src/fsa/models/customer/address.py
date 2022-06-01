@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class Address:
-    rest_endpoint = f"{BASE_URL}/addresses"
+    api_endpoint = f"{BASE_URL}/addresses"
 
     def __init__(self, id, customer_id, line1, line2, city, state_code, zip_code):
         self.id = id
@@ -29,7 +29,7 @@ class Address:
             Address
         """
         params = dict(customer_id=customer_id)
-        r = requests_retry_session().get(f"{cls.rest_endpoint}", params=params)
+        r = requests_retry_session().get(f"{cls.api_endpoint}", params=params)
 
         if not r.ok:
             err_msg = f"API request error: status_code=={r.status_code}"
@@ -101,7 +101,7 @@ class Address:
         payload = dict(**data)
 
         method = "PATCH" if exists else "POST"
-        url = f"{cls.rest_endpoint}/{address.id}" if exists else cls.rest_endpoint
+        url = f"{cls.api_endpoint}/{address.id}" if exists else cls.api_endpoint
 
         if not exists:
             payload["customer_id"] = customer_id
@@ -122,11 +122,11 @@ class Address:
 
         if exists:
             logger.debug("# update customer address")
-            url = f"{cls.rest_endpoint}/{address_id}"
+            url = f"{cls.api_endpoint}/{address_id}"
             method = "PATCH"
         else:
             logger.debug("# create customer address")
-            url = cls.rest_endpoint
+            url = cls.api_endpoint
             method = "POST"
             payload["customer_id"] = customer_id
 

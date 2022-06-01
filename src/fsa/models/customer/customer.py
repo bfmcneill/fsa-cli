@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class Customer:
-    rest_endpoint = f"{settings.BASE_URL}/customers"
+    api_endpoint = f"{settings.BASE_URL}/customers"
 
     def __init__(
         self,
@@ -70,10 +70,10 @@ class Customer:
             raise exceptions.CustomerException(err_msg)
 
         params = dict(email=email)
-        r = requests_retry_session().get(cls.rest_endpoint, params=params)
+        r = requests_retry_session().get(cls.api_endpoint, params=params)
 
         if not r.ok:
-            err_msg = f"API error: GET {cls.rest_endpoint} resulted in {r.status_code}"
+            err_msg = f"API error: GET {cls.api_endpoint} resulted in {r.status_code}"
             raise exceptions.ApiException(err_msg)
 
         return len(r.json()) == 1
@@ -88,7 +88,7 @@ class Customer:
         return Customer
         """
         try:
-            url = f"{cls.rest_endpoint}/{id}"
+            url = f"{cls.api_endpoint}/{id}"
             r = requests_retry_session().get(url)
             data = r.json()
             return cls(
@@ -118,10 +118,10 @@ class Customer:
         return Customer
         """
         params = dict(email=email)
-        r = requests_retry_session().get(cls.rest_endpoint, params=params)
+        r = requests_retry_session().get(cls.api_endpoint, params=params)
 
         if not r.ok:
-            err_msg = f"API error: GET {cls.rest_endpoint} resulted in {r.status_code}"
+            err_msg = f"API error: GET {cls.api_endpoint} resulted in {r.status_code}"
             raise exceptions.ApiException(err_msg)
 
         if len(r.json()) == 0:
@@ -185,5 +185,5 @@ class Customer:
         # make post request to api with new customer data
         logger.debug("# make post request to api with new customer data")
         payload = dict(email=email, first_name=first_name, last_name=last_name)
-        r = requests_retry_session().post(cls.rest_endpoint, data=payload)
+        r = requests_retry_session().post(cls.api_endpoint, data=payload)
         return r.json()

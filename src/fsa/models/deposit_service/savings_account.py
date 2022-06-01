@@ -8,7 +8,7 @@ class SavingsAccount(DepositService):
 
     account_type = AccountType.SAVINGS
 
-    def __init__(self, id, account_type, owner_id, rate):
+    def __init__(self, id, account_type: AccountType, owner_id: int, rate: float):
         super().__init__(id, account_type=account_type, customer_id=owner_id)
         self.rate = rate
 

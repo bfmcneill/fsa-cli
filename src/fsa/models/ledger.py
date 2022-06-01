@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class Ledger:
-    rest_endpoint = f"{BASE_URL}/ledger"
+    api_endpoint = f"{BASE_URL}/ledger"
 
     def __init__(self, account):
         self.account = account
@@ -23,7 +23,7 @@ class Ledger:
             float
         """
         params = dict(account_id=self.account.id)
-        response = requests_retry_session().get(self.rest_endpoint, params=params)
+        response = requests_retry_session().get(self.api_endpoint, params=params)
         data = response.json()
         if not data:
             return 0
@@ -37,7 +37,7 @@ class Ledger:
             List[Dict] : ledger records
         """
         params = dict(account_id=self.account.id)
-        response = requests_retry_session().get(self.rest_endpoint, params=params)
+        response = requests_retry_session().get(self.api_endpoint, params=params)
         return response.json()
 
     def append(self, account_id, record_date, credit=0, debit=0, memo="") -> dict:
@@ -61,7 +61,7 @@ class Ledger:
             balance=self.balance + credit - debit,
             memo=memo,
         )
-        response = requests_retry_session().post(self.rest_endpoint, data=payload)
+        response = requests_retry_session().post(self.api_endpoint, data=payload)
         return response.json()
 
     def to_csv(self, csv_dir: Union[str, pathlib.Path], stem: str = "export") -> None:
