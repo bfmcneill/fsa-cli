@@ -11,8 +11,6 @@ handlers:
     formatter: loguru
     level: DEBUG
 
-
-
 root:
     level: NOTSET
     handlers: [console]
