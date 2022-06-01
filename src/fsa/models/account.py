@@ -1,100 +1,197 @@
-import requests
-from loguru import logger
-from fsa.models import account_type as account_type_enum
-from fsa.models import customer
-from fsa import exceptions, settings
+from __future__ import annotations
+from typing import Union, List
+import logging
+
 from requests import exceptions as requests_exceptions
+from fsa.utils import request_utils as http
+from fsa.models.account_type import AccountType
+from fsa.models.customer.customer import Customer
+from fsa.models.ledger import Ledger
+from fsa import exceptions, settings
+
+logger = logging.getLogger(__name__)
 
 
 class Account:
+
+    rest_api = f"{settings.BASE_URL}/accounts"
+
     def __init__(
         self,
-        account_id: int,
-        account_type: account_type_enum.AccountType,
-        owner: customer.Customer,
-        **kwargs,
+        id: int,
+        account_type: AccountType,
+        customer_id: int,
+        valid_account_types: List[AccountType] = None,
     ):
-        self.id = account_id
-        self.account_type = account_type
-        self.owner = owner
+        """Account initializer
 
-    def serialize(self):
-        """Serialize state"""
-        return dict(
-            id=self.id,
-            account_type=self.account_type,
-            owner_id=self.owner.customer_id,
-        )
+        Args:
+            id              : unique account id
+            account_type    : standard account options stored in enum
+            customer_id     : customer id who owns the account
+
+        """
+        self.id = id
+        self.account_type = account_type
+        self._customer_id = customer_id
+        self._valid_account_types = valid_account_types
+
+    @property
+    def owner(self) -> Customer:
+        """owner property is the customer id reference for the account
+
+        Returns:
+            Customer object instance
+        """
+        return Customer.from_id(self._customer_id)
+
+    @property
+    def ledger(self) -> Ledger:
+        """Property associates an account instance with ledger instance
+
+        Returns:
+            Ledger which gives Account ability to transact, check balance, generate activity report, etc
+        """
+        return Ledger(self)
 
     def __repr__(self):
-        return f"<Account id={self.id} account_type={self.account_type} owner_email={self.owner.email}>"
+        return f"{__class__.__name__}(id={self.id}, account_type={self.account_type}, _customer_id={self._customer_id})"
 
     @classmethod
-    def from_id(cls, id):
-        r = requests.get(f"{settings.BASE_URL}/account/{id}")
-        data = r.json()
-        return cls.__init__(**data)
-
-    @classmethod
-    def _http_create(self, **kwargs):
-        """Create a new account
+    def from_account_id(cls, account_id: Union[str, int]) -> Account:
+        """Create account instance from account id
 
         Args
-            account_type: AccountType
-            owner: Customer
+            account_id  : The account id
 
         Returns
             Account
+
+        Raises
+            DepositoryServiceException: error when no account is found
         """
-        owner = kwargs["owner"]
-        account_type = kwargs["account_type"]
-        payload = dict(account_type=account_type, owner_id=owner.customer_id)
-        logger.debug(f"payload={payload}")
+        url = f"{cls.rest_api}/{account_id}"
+        res = http.requests_retry_session().get(url)
+        data = res.json()
+        if not bool(data):
+            raise exceptions.DepositServiceException("Account not found")
+        return cls(
+            id=data["id"],
+            account_type=AccountType[data["account_type"]],
+            customer_id=data["owner_id"],
+        )
+
+    @staticmethod
+    def validate_money_amount(amount: Union[int, float]) -> float:
+        """Amount must be numeric, non-zero, and positive
+
+        Args:
+            amount  : the amount to validate
+
+        Returns:
+            the validated amount as float
+
+        Raises:
+            AccountException: raised if amount is not numeric, non-zero or negative
+        """
+        try:
+            _amount = float(amount)
+            if _amount > 0:
+                return _amount
+            raise exceptions.AccountException("positive amount required")
+        except ValueError:
+            raise exceptions.AccountException("amount must be numeric")
+
+    @classmethod
+    def _http_create(
+        cls,
+        customer: Customer,
+        account_type: AccountType,
+        **kwargs,
+    ) -> dict:
+        """API POST request that creates a new account
+
+        Args
+            customer        : customer the account belongs to
+            account_type    : type of account being created (checking, savings, loan, credit card)
+            **kwargs        : account specific attributes - interest rate,term
+
+        Returns
+            data contained within http post response
+
+        Raises
+            CustomerException: raised if customer does not have address established
+            ApiException:
+                1) raised if server can't be reached
+                2) raised if POST request is not successful
+        """
+        # validate customer address
+        logger.debug("# validate customer address")
+        if not customer.address:
+            err_msg = "customer requires address before creating accounts"
+            raise exceptions.CustomerException(err_msg)
+
+        payload = dict(
+            account_type=account_type.name,
+            owner_id=customer.id,
+            **kwargs,
+        )
 
         try:
-            r = requests.post(f"{settings.BASE_URL}/accounts", data=payload)
-            if not r.ok():
-                err_message = f"POST `/accounts` returned {r.status_code}"
+            r = http.requests_retry_session().post(cls.rest_api, data=payload)
+            logger.debug(f"POST {cls.rest_api} (status_code: {r.status_code})")
+            if not r.ok:
+                err_message = "error creating account"
                 raise exceptions.ApiException(err_message)
 
         except requests_exceptions.ConnectionError:
-            raise exceptions.ApiException(f"{settings.BASE_URL} is not responding")
+            # POST request error
+            err_msg = f"{settings.BASE_URL} is not responding"
+            logger.debug(err_msg)
+            raise exceptions.ApiException(err_msg)
 
-        data = r.json()
-
-        return Account(
-            account_id=data["id"],
-            account_type=account_type,
-            owner=owner,
-        )
+        return r.json()
 
     @classmethod
-    def from_customer_email(cls, email, account_type: account_type_enum.AccountType):
+    def from_customer_email(cls, email: str, account_type: AccountType) -> dict:
         """Create an account linked to a specific customer
 
         Args:
-            email (str)
-            account_type (AccountType)
+            email           : customer email to link the account to
+            account_type    : type of account to open
 
         Returns
-            Customer
+            json response from POST request that creates customer account
         """
-        try:
-            owner = customer.Customer.from_email(email=email)
-            logger.debug(f"found customer: {owner}")
-        except exceptions.DatabaseException as e:
-            logger.warning("account creation failed")
-            return None
+        # look up customer by email
+        logger.debug("# look up customer by email")
+        owner = Customer.from_api_using_email(email=email)
 
-        new_account = Account._http_create(account_type=account_type, owner=owner)
-        logger.debug(f"created account: {new_account}")
+        logger.debug("# create new account owned by customer")
+        return Account._http_create(account_type=account_type, owner=owner)
 
-    # def credit(self,record_date,amount,memo):
-    #     ledger = ledger.Ledger(self.id)
-    #     self.ledger.record(record_date,amount,memo)
+    def _validate_account_type_action(self, action: str) -> bool:
+        """Verifies the action is permitted.
 
-    # def debit(self,record_date,amount,memo):
-    #     self.ledger.record(record_date,amount,memo)
+        Arg:
+            TODO: calling instance type could help eliminate need to provide arg
+            action  : a short description of the action which helps the error message be clear
 
-    # def history(self,after,before):
-    #     self.ledger.search(after,before)
+        Returns
+            true if no exception is raised
+
+        Raises
+            LedgerException:
+                raised when ledger operation is being applied to the wrong account type.
+                i.e. savings accounts can't be the target of a loan payment
+
+        """
+        if not self._valid_account_types:
+            # this error should never be triggered, Account must be subclassed
+            raise exceptions.AccountException("Account must be subclassed")
+
+        if self.account_type not in self._valid_account_types:
+            logger.debug(f"{self.account_type} can not take {action}")
+            err_msg = f"{self.account_type.name} can not take action={action}"
+            raise exceptions.LedgerExecption(err_msg)
+        return True

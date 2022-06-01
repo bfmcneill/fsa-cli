@@ -1,8 +1,8 @@
-import enum
+from enum import Enum, unique
 
 
-@enum.unique
-class AccountType(enum.Enum):
+@unique
+class AccountType(Enum):
     CHECKING = 1
     SAVINGS = 2
     CREDIT_CARD = 3
