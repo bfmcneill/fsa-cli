@@ -1,3 +1,4 @@
+import pytest
 from click.testing import CliRunner
 from fsa.cli import entrypoint
 
@@ -103,3 +104,11 @@ def test_cli_can_update_customer_having_an_address(
     result = runner.invoke(entrypoint.cli, command)
     assert customer.address.line1 == line1
     assert result.exit_code == 0
+
+
+@pytest.mark.skip(reason="not implemented")
+def test_cli_can_list_customer_accounts():
+    """Test that CLI can list all the different customer's accounts
+    # TODO give customer class ability to query account's it owns from rest api
+    """
+    return False
