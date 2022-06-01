@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class Account:
 
-    rest_api = f"{settings.BASE_URL}/accounts"
+    api_endpoint = f"{settings.BASE_URL}/accounts"
 
     def __init__(
         self,
@@ -70,7 +70,7 @@ class Account:
         Raises
             DepositoryServiceException: error when no account is found
         """
-        url = f"{cls.rest_api}/{account_id}"
+        url = f"{cls.api_endpoint}/{account_id}"
         res = http.requests_retry_session().get(url)
         data = res.json()
         if not bool(data):
@@ -114,7 +114,7 @@ class Account:
         Args
             customer        : customer the account belongs to
             account_type    : type of account being created (checking, savings, loan, credit card)
-            **kwargs        : account specific attributes - interest rate,term
+            **kwargs        : account specific attributes - interest rate,term, loan amount, etc.
 
         Returns
             data contained within http post response
@@ -138,8 +138,8 @@ class Account:
         )
 
         try:
-            r = http.requests_retry_session().post(cls.rest_api, data=payload)
-            logger.debug(f"POST {cls.rest_api} (status_code: {r.status_code})")
+            r = http.requests_retry_session().post(cls.api_endpoint, data=payload)
+            logger.debug(f"POST {cls.api_endpoint} (status_code: {r.status_code})")
             if not r.ok:
                 err_message = "error creating account"
                 raise exceptions.ApiException(err_message)
@@ -152,23 +152,9 @@ class Account:
 
         return r.json()
 
-    @classmethod
-    def from_customer_email(cls, email: str, account_type: AccountType) -> dict:
-        """Create an account linked to a specific customer
-
-        Args:
-            email           : customer email to link the account to
-            account_type    : type of account to open
-
-        Returns
-            json response from POST request that creates customer account
-        """
-        # look up customer by email
-        logger.debug("# look up customer by email")
-        owner = Customer.from_api_using_email(email=email)
-
-        logger.debug("# create new account owned by customer")
-        return Account._http_create(account_type=account_type, owner=owner)
+    def create(self) -> Account:
+        """stub for creating an account"""
+        pass
 
     def _validate_account_type_action(self, action: str) -> bool:
         """Verifies the action is permitted.
