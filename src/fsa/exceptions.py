@@ -1,11 +1,15 @@
-from loguru import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CustomException(Exception):
-    """Custom exception"""
+    def __init__(self, err_message):
+        # logger.debug(err_message)
+        super().__init__(err_message)
 
 
-class CustomerExeption(CustomException):
+class CustomerException(CustomException):
     """Customer exception"""
 
 
@@ -16,14 +20,26 @@ class ValidatorException(CustomException):
 class ApiException(CustomException):
     """API exceptions"""
 
-    def __init__(self, err_message):
-        super().__init__(err_message)
-        logger.error(err_message)
-
 
 class DatabaseException(CustomException):
-    """DatabaseException"""
+    """Database exception"""
 
-    def __init__(self, err_message):
-        super().__init__(err_message)
-        logger.error(err_message)
+
+class DepositServiceException(CustomException):
+    """Deposit service exception"""
+
+
+class AccountException(CustomException):
+    """Account exception"""
+
+
+class LedgerExecption(CustomException):
+    """Ledger exception"""
+
+
+class LendingServiceException(CustomException):
+    """Lending service exception"""
+
+
+class AddressException(CustomException):
+    """Address exception"""
