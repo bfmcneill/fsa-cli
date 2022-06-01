@@ -1,4 +1,19 @@
+# Financial Services App (FSA) CLI
+
+![cli entrypoint](./images/cli-entrypoint.png)
+
 ## CLI Actions
+
+- `pcmd` is the entrypoint for all CLI actions
+- each command has help info if you flag command with --help
+
+---
+
+![customer commands](./images/cli-customer.png)
+
+---
+
+![account commands](./images/cli-account.png)
 
 ## create customer
 
